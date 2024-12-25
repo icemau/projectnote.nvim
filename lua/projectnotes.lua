@@ -25,9 +25,12 @@ local function create_buffer(data_dir, file_name)
   vim.api.nvim_set_option_value("buftype", "acwrite", { buf = buf })
   vim.api.nvim_buf_set_name(buf, "PROJECTNOTE")
 
-  local r_file = assert(io.open(data_dir .. '/' .. file_name, "r"))
-  local r_content = r_file:read("all")
-  r_file:close()
+  local r_file = io.open(data_dir .. '/' .. file_name, "r")
+  local r_content = ""
+  if r_file ~= nil then
+    local r_content = r_file:read("all")
+    r_file:close()
+  end
 
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(r_content, "\n", {}))
   vim.api.nvim_set_option_value("modified", false, { buf = buf })
