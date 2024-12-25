@@ -15,70 +15,92 @@ local state = {
   buf = -1,
 }
 
+local function close_window()
+  if vim.api.nvim_win_is_valid(state.win) then
+    vim.api.nvim_win_hide(state.win)
+    state.win = -1
+  end
+end
+
+--- @param name string
+--- @param value string | boolean
+local function buf_set_option(name, value)
+  if vim.api.nvim_buf_is_valid(state.buf) then
+    vim.api.nvim_set_option_value(name, value, { buf = state.buf })
+  end
+end
+
+local augroup = vim.api.nvim_create_augroup("ProjectNotes", {})
+
 --- @param data_dir string
 --- @param file_name string
---- @return integer
-local function create_buffer(data_dir, file_name)
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_set_option_value("filetype", "markdown", { buf = buf })
-  vim.api.nvim_set_option_value("buflisted", false, { buf = buf })
-  vim.api.nvim_set_option_value("buftype", "acwrite", { buf = buf })
-  vim.api.nvim_buf_set_name(buf, "PROJECTNOTE")
-
-  local r_file = io.open(data_dir .. '/' .. file_name, "r")
-  local r_content = ""
-  if r_file ~= nil then
-    r_content = r_file:read("all")
-    r_file:close()
+local function buf_set_autocmds(data_dir, file_name)
+  if not vim.api.nvim_buf_is_valid(state.buf) then
+    return
   end
 
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(r_content, "\n", {}))
-  vim.api.nvim_set_option_value("modified", false, { buf = buf })
-
   vim.api.nvim_create_autocmd("BufWriteCmd", {
-    buffer = buf,
+    buffer = state.buf,
+    group = augroup,
     callback = function()
-      local content = vim.api.nvim_buf_get_text(buf, 0, 0, -1, -1, {})
+      local content = vim.api.nvim_buf_get_text(state.buf, 0, 0, -1, -1, {})
       local file = assert(io.open(data_dir .. '/' .. file_name, "w"))
-      for _, v in pairs(content) do
-        file:write(v .. "\n")
+      for _, line in pairs(content) do
+        file:write(line .. "\n")
       end
       file:close()
 
-      vim.api.nvim_set_option_value("modified", false, { buf = buf })
+      vim.api.nvim_set_option_value("modified", false, { buf = state.buf })
 
-      if vim.api.nvim_win_is_valid(state.win) then
-        vim.api.nvim_win_hide(state.win)
-        state.win = -1
-      end
+      close_window()
     end
   })
 
   vim.api.nvim_create_autocmd("BufLeave", {
-    buffer = buf,
+    buffer = state.buf,
+    group = augroup,
     callback = function()
-      if vim.api.nvim_win_is_valid(state.win) then
-        vim.api.nvim_win_hide(state.win)
-        state.win = -1
-      end
+      close_window()
     end,
   })
-  return buf
+end
+
+--- @param data_dir string
+--- @param file_name string
+local function init_buffer(data_dir, file_name)
+  if vim.api.nvim_buf_is_valid(state.buf) then
+    return
+  end
+
+  state.buf = vim.api.nvim_create_buf(false, true)
+
+  buf_set_option("filetype", "markdown")
+  buf_set_option("buflisted", false)
+  buf_set_option("buftype", "acwrite")
+  vim.api.nvim_buf_set_name(state.buf, "PROJECTNOTE")
+
+  local file = io.open(data_dir .. '/' .. file_name, "r")
+  local lines = {}
+  if file then
+    lines = vim.split(file:read("all"), "\n")
+    file:close()
+  end
+
+  vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
+  vim.api.nvim_set_option_value("modified", false, { buf = state.buf })
+
+  buf_set_autocmds(data_dir, file_name)
 end
 
 --- @param data_dir string
 --- @param file_name string
 local function toggle_project_notes(data_dir, file_name)
-  -- toggle
   if vim.api.nvim_win_is_valid(state.win) then
-    vim.api.nvim_win_hide(state.win)
-    state.win = -1
+    close_window()
     return
   end
 
-  if not vim.api.nvim_buf_is_valid(state.buf) then
-    state.buf = create_buffer(data_dir, file_name)
-  end
+  init_buffer(data_dir, file_name)
 
   local width = math.floor(vim.o.columns * 0.8)
   local height = math.floor(vim.o.lines * 0.8)
@@ -98,12 +120,10 @@ local function toggle_project_notes(data_dir, file_name)
   }
 
   state.win = vim.api.nvim_open_win(state.buf, true, win_config)
-
-  return {}
 end
 
 --- @class ProjectNotesOpts
----
+
 --- @param opt ProjectNotesOpts
 function M.setup(opt)
   opt = opt or {}
