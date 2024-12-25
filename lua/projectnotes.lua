@@ -45,6 +45,8 @@ local function create_buffer(data_dir, file_name)
       end
       file:close()
 
+      vim.api.nvim_set_option_value("modified", false, { buf = buf })
+
       if vim.api.nvim_win_is_valid(state.win) then
         vim.api.nvim_win_hide(state.win)
         state.win = -1
