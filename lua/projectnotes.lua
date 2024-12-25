@@ -28,7 +28,7 @@ local function create_buffer(data_dir, file_name)
   local r_file = io.open(data_dir .. '/' .. file_name, "r")
   local r_content = ""
   if r_file ~= nil then
-    local r_content = r_file:read("all")
+    r_content = r_file:read("all")
     r_file:close()
   end
 
