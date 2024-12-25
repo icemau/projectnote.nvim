@@ -7,7 +7,7 @@ Quickly take notes for your projects without the concern where to put them.
 Using [lazy](https://github.com/LazyVim/LazyVim)
 ```lua
 {
-  'icemau/projectnotes.nvim'
+  'icemau/projectnotes.nvim',
   config = function()
     local projectnotes = require('projectnotes')
     projectnotes.setup {}
