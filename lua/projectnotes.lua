@@ -1,5 +1,6 @@
 local M = {}
 
+--- Ensures that the given path exists.
 --- @param dir string
 local function ensure_path(dir)
   if vim.fn.isdirectory(dir) ~= 1 then
@@ -8,13 +9,14 @@ local function ensure_path(dir)
 end
 
 --- @class ProjectNotesState
---- @field win integer
---- @field buf integer
+--- @field win integer The current window
+--- @field buf integer The buffer holding the notes
 local state = {
   win = -1,
   buf = -1,
 }
 
+--- Closes the current state window if it is open.
 local function close_window()
   if vim.api.nvim_win_is_valid(state.win) then
     vim.api.nvim_win_hide(state.win)
@@ -22,6 +24,7 @@ local function close_window()
   end
 end
 
+--- Sets an option for the current state buffer.
 --- @param name string
 --- @param value string | boolean
 local function buf_set_option(name, value)
@@ -32,6 +35,7 @@ end
 
 local augroup = vim.api.nvim_create_augroup("ProjectNotes", {})
 
+--- Applies all autocmds to the state buffer
 --- @param data_dir string
 --- @param file_name string
 local function buf_set_autocmds(data_dir, file_name)
@@ -65,6 +69,7 @@ local function buf_set_autocmds(data_dir, file_name)
   })
 end
 
+--- Initializes the state buffer
 --- @param data_dir string
 --- @param file_name string
 local function init_buffer(data_dir, file_name)
@@ -92,6 +97,7 @@ local function init_buffer(data_dir, file_name)
   buf_set_autocmds(data_dir, file_name)
 end
 
+--- Opens/Closes the current projectnotes window
 --- @param data_dir string
 --- @param file_name string
 local function toggle_project_notes(data_dir, file_name)
