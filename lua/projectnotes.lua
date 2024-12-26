@@ -36,9 +36,8 @@ end
 local augroup = vim.api.nvim_create_augroup("ProjectNotes", {})
 
 --- Applies all autocmds to the state buffer
---- @param data_dir string
---- @param file_name string
-local function buf_set_autocmds(data_dir, file_name)
+--- @param settings Settings
+local function buf_set_autocmds(settings)
   if not vim.api.nvim_buf_is_valid(state.buf) then
     return
   end
@@ -48,7 +47,7 @@ local function buf_set_autocmds(data_dir, file_name)
     group = augroup,
     callback = function()
       local content = vim.api.nvim_buf_get_text(state.buf, 0, 0, -1, -1, {})
-      local file = assert(io.open(data_dir .. '/' .. file_name, "w"))
+      local file = assert(io.open(settings.data_path .. '/' .. settings.file_name, "w"))
       for _, line in pairs(content) do
         file:write(line .. "\n")
       end
@@ -70,9 +69,8 @@ local function buf_set_autocmds(data_dir, file_name)
 end
 
 --- Initializes the state buffer
---- @param data_dir string
---- @param file_name string
-local function init_buffer(data_dir, file_name)
+--- @param settings Settings
+local function init_buffer(settings)
   if vim.api.nvim_buf_is_valid(state.buf) then
     return
   end
@@ -84,7 +82,8 @@ local function init_buffer(data_dir, file_name)
   buf_set_option("buftype", "acwrite")
   vim.api.nvim_buf_set_name(state.buf, "PROJECTNOTE")
 
-  local file = io.open(data_dir .. '/' .. file_name, "r")
+  local file_path = settings.data_path .. '/' .. settings.file_name
+  local file = io.open(file_path, 'r')
   local lines = {}
   if file then
     lines = vim.split(file:read("all"), "\n")
@@ -94,22 +93,21 @@ local function init_buffer(data_dir, file_name)
   vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
   vim.api.nvim_set_option_value("modified", false, { buf = state.buf })
 
-  buf_set_autocmds(data_dir, file_name)
+  buf_set_autocmds(settings)
 
   vim.keymap.set("n", "q", close_window, { buffer = state.buf })
   vim.keymap.set("n", "<Esc>", close_window, { buffer = state.buf })
 end
 
 --- Opens/Closes the current projectnotes window
---- @param data_dir string
---- @param file_name string
-local function toggle_project_notes(data_dir, file_name)
+--- @param settings Settings
+local function toggle_project_notes(settings)
   if vim.api.nvim_win_is_valid(state.win) then
     close_window()
     return
   end
 
-  init_buffer(data_dir, file_name)
+  init_buffer(settings)
 
   local width = math.floor(vim.o.columns * 0.8)
   local height = math.floor(vim.o.lines * 0.8)
@@ -132,17 +130,31 @@ local function toggle_project_notes(data_dir, file_name)
 end
 
 --- @class ProjectNotesOpts
+--- @field data_path string? Path to directory storing the notes.
+---
+--- @class Settings
+--- @field data_path string
+--- @field file_name string
 
---- @param opt ProjectNotesOpts
-function M.setup(opt)
-  opt = opt or {}
-  local data_path = string.format("%s/projectnotes", vim.fn.stdpath("data"))
-  ensure_path(data_path)
+--- @param opts ProjectNotesOpts
+function M.setup(opts)
+  opts = opts or {}
+
   local s = vim.split(vim.fn.getcwd(), "/")
   local project_name = s[#s]
-  local file_name = vim.fn.sha256(project_name) .. ".md"
 
-  vim.api.nvim_create_user_command("ProjectNotesToggle", function() toggle_project_notes(data_path, file_name) end,
+  --- @type Settings
+  local settings = {
+    data_path = opts.data_path or string.format("%s/projectnotes", vim.fn.stdpath("data")),
+    file_name = vim.fn.sha256(project_name) .. ".md"
+  }
+
+  ensure_path(settings.data_path)
+
+  vim.api.nvim_create_user_command("ProjectNotesToggle",
+    function()
+      toggle_project_notes(settings)
+    end,
     {})
 end
 
