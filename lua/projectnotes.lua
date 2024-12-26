@@ -55,7 +55,9 @@ local function buf_set_autocmds(settings)
 
       vim.api.nvim_set_option_value("modified", false, { buf = state.buf })
 
-      close_window()
+      if settings.close_write then
+        close_window()
+      end
     end
   })
 
@@ -131,10 +133,12 @@ end
 
 --- @class ProjectNotesOpts
 --- @field data_path string? Path to directory storing the notes.
+--- @field close_write boolean? If `true` the note window will be closed after a write.
 ---
 --- @class Settings
 --- @field data_path string
 --- @field file_name string
+--- @field close_write boolean
 
 --- @param opts ProjectNotesOpts
 function M.setup(opts)
@@ -146,7 +150,8 @@ function M.setup(opts)
   --- @type Settings
   local settings = {
     data_path = opts.data_path or string.format("%s/projectnotes", vim.fn.stdpath("data")),
-    file_name = vim.fn.sha256(project_name) .. ".md"
+    file_name = vim.fn.sha256(project_name) .. ".md",
+    close_write = opts.close_write or false,
   }
 
   ensure_path(settings.data_path)
