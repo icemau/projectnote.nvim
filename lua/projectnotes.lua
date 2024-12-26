@@ -95,6 +95,9 @@ local function init_buffer(data_dir, file_name)
   vim.api.nvim_set_option_value("modified", false, { buf = state.buf })
 
   buf_set_autocmds(data_dir, file_name)
+
+  vim.keymap.set("n", "q", close_window, { buffer = state.buf })
+  vim.keymap.set("n", "<Esc>", close_window, { buffer = state.buf })
 end
 
 --- Opens/Closes the current projectnotes window
