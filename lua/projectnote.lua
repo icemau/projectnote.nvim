@@ -1,8 +1,17 @@
 local M = {}
 
+--- @class ProjectNoteState
+--- @field buf integer The buffer holding the notes
+--- @field win integer? The current window
+
+--- @class ProjectNoteSettings
+--- @field data_path string
+--- @field file_name string
+--- @field close_write boolean
+
 --- @class Note
---- @field settings ProjectNoteSettings
 --- @field state ProjectNoteState
+--- @field settings ProjectNoteSettings
 local Note = {}
 Note.__index = Note
 
@@ -12,7 +21,7 @@ function Note:new(settings)
   local note = setmetatable({
     state = {
       buf = vim.api.nvim_create_buf(false, true),
-      win = -1,
+      win = nil,
     },
     settings = settings,
   }, self)
@@ -22,27 +31,32 @@ function Note:new(settings)
   return note
 end
 
---- Ensures that the given path exists.
---- @param dir string
-local function ensure_path(dir)
-  if vim.fn.isdirectory(dir) ~= 1 then
-    vim.uv.fs_mkdir(dir, 488)
+--- Initializes the state buffer
+function Note:init_buffer()
+  assert(self.state.buf)
+  self:buf_set_option("filetype", "markdown")
+  self:buf_set_option("buflisted", false)
+  self:buf_set_option("buftype", "acwrite")
+  vim.api.nvim_buf_set_name(self.state.buf, "PROJECTNOTE")
+
+  local file_path = self.settings.data_path .. '/' .. self.settings.file_name
+  local file = io.open(file_path, 'r')
+  local lines = {}
+  if file then
+    lines = vim.split(file:read("all"), "\n")
+    file:close()
   end
+
+  vim.api.nvim_buf_set_lines(self.state.buf, 0, -1, false, lines)
+  self:buf_set_option("modified", false)
+
+  self:buf_set_autocmds()
+
+  vim.keymap.set("n", "q", function() self:close_window() end, { buffer = self.state.buf })
+  vim.keymap.set("n", "<Esc>", function() self:close_window() end, { buffer = self.state.buf })
 end
 
---- @class ProjectNoteState
---- @field win integer The current window
---- @field buf integer The buffer holding the notes
-
---- Closes the current state window if it is open.
-function Note:close_window()
-  if vim.api.nvim_win_is_valid(self.state.win) then
-    vim.api.nvim_win_hide(self.state.win)
-    self.state.win = -1
-  end
-end
-
---- Sets an option for the current state buffer.
+--- Sets option for the current state buffer.
 --- @param name string
 --- @param value string | boolean
 function Note:buf_set_option(name, value)
@@ -51,13 +65,13 @@ function Note:buf_set_option(name, value)
   end
 end
 
-local augroup = vim.api.nvim_create_augroup("ProjectNote", {})
-
 --- Applies all autocmds to the state buffer
 function Note:buf_set_autocmds()
   if not vim.api.nvim_buf_is_valid(self.state.buf) then
     return
   end
+
+  local augroup = vim.api.nvim_create_augroup("ProjectNote", {})
 
   vim.api.nvim_create_autocmd("BufWriteCmd", {
     buffer = self.state.buf,
@@ -87,29 +101,12 @@ function Note:buf_set_autocmds()
   })
 end
 
---- Initializes the state buffer
-function Note:init_buffer()
-  assert(self.state.buf)
-  self:buf_set_option("filetype", "markdown")
-  self:buf_set_option("buflisted", false)
-  self:buf_set_option("buftype", "acwrite")
-  vim.api.nvim_buf_set_name(self.state.buf, "PROJECTNOTE")
-
-  local file_path = self.settings.data_path .. '/' .. self.settings.file_name
-  local file = io.open(file_path, 'r')
-  local lines = {}
-  if file then
-    lines = vim.split(file:read("all"), "\n")
-    file:close()
+--- Closes the current state window if it is open.
+function Note:close_window()
+  if vim.api.nvim_win_is_valid(self.state.win) then
+    vim.api.nvim_win_hide(self.state.win)
+    self.state.win = -1
   end
-
-  vim.api.nvim_buf_set_lines(self.state.buf, 0, -1, false, lines)
-  self:buf_set_option("modified", false)
-
-  self:buf_set_autocmds()
-
-  vim.keymap.set("n", "q", function () self:close_window() end, { buffer = self.state.buf })
-  vim.keymap.set("n", "<Esc>", function () self:close_window() end, { buffer = self.state.buf })
 end
 
 --- Opens/Closes the current note
@@ -139,15 +136,9 @@ function Note:toggle()
   self.state.win = vim.api.nvim_open_win(self.state.buf, true, win_config)
 end
 
-
 --- @class ProjectNoteOpts
 --- @field data_path string? Path to directory storing the notes.
 --- @field close_write boolean? If `true` the note window will be closed after a write.
-
---- @class ProjectNoteSettings
---- @field data_path string
---- @field file_name string
---- @field close_write boolean
 
 --- @param opts ProjectNoteOpts
 function M.setup(opts)
@@ -163,7 +154,9 @@ function M.setup(opts)
     close_write = opts.close_write or false,
   }
 
-  ensure_path(settings.data_path)
+  if not vim.fn.isdirectory(settings.data_path) then
+    vim.uv.fs_mkdir(settings.data_path, 488)
+  end
 
   local note = Note:new(settings)
 
