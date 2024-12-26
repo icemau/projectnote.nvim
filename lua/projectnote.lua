@@ -170,13 +170,20 @@ end
 function M.setup(opts)
   opts = opts or {}
 
-  local s = vim.split(vim.fn.getcwd(), "/")
-  local project_name = s[#s]
+  local project_key = ""
+  if vim.fn.isdirectory(".git") then
+    -- Get the first commit id and use it as project key.
+    -- This should assure getting the same note even when moving the project.
+    project_key = vim.trim(vim.fn.system("git rev-list --max-parents=0 HEAD"))
+  else
+    -- Else hash the current working directory and use it as project key.
+    project_key = vim.fn.sha256(vim.fn.getcwd())
+  end
 
   --- @type ProjectNoteSettings
   local settings = {
     data_path = opts.data_path or string.format("%s/projectnote", vim.fn.stdpath("data")),
-    file_name = vim.fn.sha256(project_name) .. ".md",
+    file_name = project_key .. ".md",
     close_write = opts.close_write or false,
   }
 
