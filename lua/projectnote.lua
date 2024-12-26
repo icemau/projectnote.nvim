@@ -52,8 +52,8 @@ function Note:init_buffer()
 
   self:buf_set_autocmds()
 
-  vim.keymap.set("n", "q", function() self:close_window() end, { buffer = self.state.buf })
-  vim.keymap.set("n", "<Esc>", function() self:close_window() end, { buffer = self.state.buf })
+  vim.keymap.set("n", "q", function() self:close() end, { buffer = self.state.buf })
+  vim.keymap.set("n", "<Esc>", function() self:close() end, { buffer = self.state.buf })
 end
 
 --- Sets option for the current state buffer.
@@ -87,7 +87,7 @@ function Note:buf_set_autocmds()
       vim.api.nvim_set_option_value("modified", false, { buf = self.state.buf })
 
       if self.settings.close_write then
-        self:close_window()
+        self:close()
       end
     end
   })
@@ -96,23 +96,29 @@ function Note:buf_set_autocmds()
     buffer = self.state.buf,
     group = augroup,
     callback = function()
-      self:close_window()
+      self:close()
     end,
   })
 end
 
---- Closes the current state window if it is open.
-function Note:close_window()
-  if vim.api.nvim_win_is_valid(self.state.win) then
-    vim.api.nvim_win_hide(self.state.win)
-    self.state.win = -1
+--- Opens/Closes the current note
+function Note:toggle()
+  if self:is_open() then
+    self:open()
+  else
+    self:close()
   end
 end
 
---- Opens/Closes the current note
-function Note:toggle()
+--- @return boolean is_open true if there is a window displaying the buffer
+function Note:is_open()
+  return self.state.win ~= nil and vim.api.nvim_win_is_valid(self.state.win)
+end
+
+--- Opens the current state window if it is open.
+function Note:open()
   if vim.api.nvim_win_is_valid(self.state.win) then
-    self:close_window()
+    -- Window is open ,do nothing.
     return
   end
 
@@ -134,6 +140,17 @@ function Note:toggle()
   }
 
   self.state.win = vim.api.nvim_open_win(self.state.buf, true, win_config)
+end
+
+--- Closes the current state window if it is open.
+function Note:close()
+  if not vim.api.nvim_win_is_valid(self.state.win) then
+    -- Window is closed, do nothing.
+    return
+  end
+
+  vim.api.nvim_win_hide(self.state.win)
+  self.state.win = nil
 end
 
 --- @class ProjectNoteOpts
