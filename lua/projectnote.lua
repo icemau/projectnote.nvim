@@ -2,7 +2,7 @@ local M = {}
 
 --- @class ProjectNoteState
 --- @field buf integer The buffer holding the notes
---- @field win integer? The current window
+--- @field win integer The current window
 
 --- @class ProjectNoteSettings
 --- @field data_path string
@@ -21,7 +21,7 @@ function Note:new(settings)
   local note = setmetatable({
     state = {
       buf = vim.api.nvim_create_buf(false, true),
-      win = nil,
+      win = -1,
     },
     settings = settings,
   }, self)
@@ -112,7 +112,7 @@ end
 
 --- @return boolean is_open true if there is a window displaying the buffer
 function Note:is_open()
-  return self.state.win ~= nil and vim.api.nvim_win_is_valid(self.state.win)
+  return self.state.win ~= -1 and vim.api.nvim_win_is_valid(self.state.win)
 end
 
 --- Opens the current state window if it is open.
@@ -150,7 +150,7 @@ function Note:close()
   end
 
   vim.api.nvim_win_hide(self.state.win)
-  self.state.win = nil
+  self.state.win = -1
 end
 
 --- @class ProjectNoteOpts
@@ -183,5 +183,7 @@ function M.setup(opts)
     end,
     {})
 end
+
+M.setup {}
 
 return M
