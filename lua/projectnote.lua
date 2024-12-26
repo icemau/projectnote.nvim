@@ -8,7 +8,7 @@ local function ensure_path(dir)
   end
 end
 
---- @class ProjectNotesState
+--- @class ProjectNoteState
 --- @field win integer The current window
 --- @field buf integer The buffer holding the notes
 local state = {
@@ -33,7 +33,7 @@ local function buf_set_option(name, value)
   end
 end
 
-local augroup = vim.api.nvim_create_augroup("ProjectNotes", {})
+local augroup = vim.api.nvim_create_augroup("ProjectNote", {})
 
 --- Applies all autocmds to the state buffer
 --- @param settings Settings
@@ -101,7 +101,7 @@ local function init_buffer(settings)
   vim.keymap.set("n", "<Esc>", close_window, { buffer = state.buf })
 end
 
---- Opens/Closes the current projectnotes window
+--- Opens/Closes the current projectnote
 --- @param settings Settings
 local function toggle_project_notes(settings)
   if vim.api.nvim_win_is_valid(state.win) then
@@ -131,7 +131,7 @@ local function toggle_project_notes(settings)
   state.win = vim.api.nvim_open_win(state.buf, true, win_config)
 end
 
---- @class ProjectNotesOpts
+--- @class ProjectNoteOpts
 --- @field data_path string? Path to directory storing the notes.
 --- @field close_write boolean? If `true` the note window will be closed after a write.
 ---
@@ -140,7 +140,7 @@ end
 --- @field file_name string
 --- @field close_write boolean
 
---- @param opts ProjectNotesOpts
+--- @param opts ProjectNoteOpts
 function M.setup(opts)
   opts = opts or {}
 
@@ -149,14 +149,14 @@ function M.setup(opts)
 
   --- @type Settings
   local settings = {
-    data_path = opts.data_path or string.format("%s/projectnotes", vim.fn.stdpath("data")),
+    data_path = opts.data_path or string.format("%s/projectnote", vim.fn.stdpath("data")),
     file_name = vim.fn.sha256(project_name) .. ".md",
     close_write = opts.close_write or false,
   }
 
   ensure_path(settings.data_path)
 
-  vim.api.nvim_create_user_command("ProjectNotesToggle",
+  vim.api.nvim_create_user_command("ProjectNoteToggle",
     function()
       toggle_project_notes(settings)
     end,
