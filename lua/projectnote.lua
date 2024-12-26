@@ -27,6 +27,7 @@ function Note:new(settings)
   }, self)
 
   note:init_buffer()
+  note:read()
 
   return note
 end
@@ -39,6 +40,14 @@ function Note:init_buffer()
   self:buf_set_option("buftype", "acwrite")
   vim.api.nvim_buf_set_name(self.state.buf, "PROJECTNOTE")
 
+  self:buf_set_autocmds()
+
+  vim.keymap.set("n", "q", function() self:close() end, { buffer = self.state.buf })
+  vim.keymap.set("n", "<Esc>", function() self:close() end, { buffer = self.state.buf })
+end
+
+--- Reads the content of the note file and puts it into the buffer.
+function Note:read()
   local file_path = self.settings.data_path .. '/' .. self.settings.file_name
   local file = io.open(file_path, 'r')
   local lines = {}
@@ -49,11 +58,18 @@ function Note:init_buffer()
 
   vim.api.nvim_buf_set_lines(self.state.buf, 0, -1, false, lines)
   self:buf_set_option("modified", false)
+end
 
-  self:buf_set_autocmds()
+--- Writes the content of the buffer into the note file.
+function Note:write()
+  local content = vim.api.nvim_buf_get_text(self.state.buf, 0, 0, -1, -1, {})
+  local file = assert(io.open(self.settings.data_path .. '/' .. self.settings.file_name, "w"))
+  for _, line in ipairs(content) do
+    file:write(line .. "\n")
+  end
+  file:close()
 
-  vim.keymap.set("n", "q", function() self:close() end, { buffer = self.state.buf })
-  vim.keymap.set("n", "<Esc>", function() self:close() end, { buffer = self.state.buf })
+  self:buf_set_option("modified", false)
 end
 
 --- Sets option for the current state buffer.
@@ -77,14 +93,7 @@ function Note:buf_set_autocmds()
     buffer = self.state.buf,
     group = augroup,
     callback = function()
-      local content = vim.api.nvim_buf_get_text(self.state.buf, 0, 0, -1, -1, {})
-      local file = assert(io.open(self.settings.data_path .. '/' .. self.settings.file_name, "w"))
-      for _, line in pairs(content) do
-        file:write(line .. "\n")
-      end
-      file:close()
-
-      vim.api.nvim_set_option_value("modified", false, { buf = self.state.buf })
+      self:write()
 
       if self.settings.close_write then
         self:close()
