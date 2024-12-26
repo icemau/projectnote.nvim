@@ -3,7 +3,7 @@ local M = {}
 --- @param dir string
 local function ensure_path(dir)
   if vim.fn.isdirectory(dir) ~= 1 then
-    vim.loop.fs_mkdir(dir, 488)
+    vim.uv.fs_mkdir(dir, 488)
   end
 end
 
