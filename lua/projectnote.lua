@@ -104,9 +104,9 @@ end
 --- Opens/Closes the current note
 function Note:toggle()
   if self:is_open() then
-    self:open()
-  else
     self:close()
+  else
+    self:open()
   end
 end
 
@@ -183,7 +183,5 @@ function M.setup(opts)
     end,
     {})
 end
-
-M.setup {}
 
 return M
