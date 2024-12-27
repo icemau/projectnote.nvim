@@ -129,6 +129,8 @@ end
 ---@diagnostic disable-next-line: unused-local
 local window_layout = {
   CENTER = 1,
+  RIGHT = 2,
+  LEFT = 3,
 }
 
 --- Returns the window config
@@ -138,12 +140,31 @@ function Note:get_window_config()
   local col = 0
   local row = 0
 
-  if self.settings.window_layout == "CENTER" then
-    width = math.floor(vim.o.columns * 0.8)
-    height = math.floor(vim.o.lines * 0.8)
+  -- available widht
+  local awidth = vim.o.columns
 
+  -- available height (lines - cmdheight - border)
+  local aheight = vim.o.lines - vim.o.cmdheight - 2
+
+  if self.settings.window_layout == "CENTER" then
+    width = math.floor(awidth * 0.8)
+    height = math.floor(aheight * 0.8)
     col = math.floor((vim.o.columns - width) / 2)
     row = math.floor((vim.o.lines - height) / 2)
+  end
+
+  if self.settings.window_layout == "RIGHT" then
+    width = math.floor(awidth * 0.33)
+    height = aheight
+    col = 0
+    row = 0
+  end
+
+  if self.settings.window_layout == "LEFT" then
+    width = math.floor(awidth * 0.33)
+    height = aheight
+    col = vim.o.columns - width
+    row = 0
   end
 
   return {
