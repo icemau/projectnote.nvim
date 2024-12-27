@@ -131,6 +131,7 @@ local window_layout = {
   CENTER = 1,
   RIGHT = 2,
   LEFT = 3,
+  FULLSCREEN = 4,
 }
 
 --- Returns the window config
@@ -162,6 +163,13 @@ function Note:get_window_config()
 
   if self.settings.window_layout == "LEFT" then
     width = math.floor(awidth * 0.33)
+    height = aheight
+    col = vim.o.columns - width
+    row = 0
+  end
+
+  if self.settings.window_layout == "FULLSCREEN" then
+    width = awidth
     height = aheight
     col = vim.o.columns - width
     row = 0
