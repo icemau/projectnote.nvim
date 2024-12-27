@@ -8,6 +8,7 @@ local M = {}
 --- @field data_path string
 --- @field file_name string
 --- @field close_write boolean
+--- @field window_layout WindowLayout
 
 --- @class Note
 --- @field state ProjectNoteState
@@ -124,6 +125,39 @@ function Note:is_open()
   return self.state.win ~= -1 and vim.api.nvim_win_is_valid(self.state.win)
 end
 
+---@enum (key) WindowLayout
+---@diagnostic disable-next-line: unused-local
+local window_layout = {
+  CENTER = 1,
+}
+
+--- Returns the window config
+function Note:get_window_config()
+  local width = 0
+  local height = 0
+  local col = 0
+  local row = 0
+
+  if self.settings.window_layout == "CENTER" then
+    width = math.floor(vim.o.columns * 0.8)
+    height = math.floor(vim.o.lines * 0.8)
+
+    col = math.floor((vim.o.columns - width) / 2)
+    row = math.floor((vim.o.lines - height) / 2)
+  end
+
+  return {
+    relative = "editor",
+    title = "Project Notes",
+    width = width,
+    height = height,
+    col = col,
+    row = row,
+    style = "minimal",
+    border = "rounded",
+  }
+end
+
 --- Opens the current state window if it is open.
 function Note:open()
   if vim.api.nvim_win_is_valid(self.state.win) then
@@ -131,24 +165,7 @@ function Note:open()
     return
   end
 
-  local width = math.floor(vim.o.columns * 0.8)
-  local height = math.floor(vim.o.lines * 0.8)
-
-  local col = math.floor((vim.o.columns - width) / 2)
-  local row = math.floor((vim.o.lines - height) / 2)
-
-  local win_config = {
-    relative = "editor",
-    width = width,
-    title = "Project Notes",
-    height = height,
-    col = col,
-    row = row,
-    style = "minimal", -- No borders or extra UI elements
-    border = "rounded",
-  }
-
-  self.state.win = vim.api.nvim_open_win(self.state.buf, true, win_config)
+  self.state.win = vim.api.nvim_open_win(self.state.buf, true, self:get_window_config())
 end
 
 --- Closes the current state window if it is open.
@@ -165,6 +182,7 @@ end
 --- @class ProjectNoteOpts
 --- @field data_path string? Path to directory storing the notes.
 --- @field close_write boolean? If `true` the note window will be closed after a write.
+--- @field window_layout WindowLayout? Layout of the note window
 
 --- @param opts ProjectNoteOpts
 function M.setup(opts)
@@ -185,6 +203,7 @@ function M.setup(opts)
     data_path = opts.data_path or string.format("%s/projectnote", vim.fn.stdpath("data")),
     file_name = project_key .. ".md",
     close_write = opts.close_write or false,
+    window_layout = opts.window_layout or "CENTER",
   }
 
   if not vim.fn.isdirectory(settings.data_path) then
