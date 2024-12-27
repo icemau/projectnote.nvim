@@ -208,13 +208,21 @@ function Note:close()
   self.state.win = -1
 end
 
+--- @type Note?
+local note = nil
+
 --- @class ProjectNoteOpts
 --- @field data_path string? Path to directory storing the notes.
 --- @field close_write boolean? If `true` the note window will be closed after a write.
 --- @field window_layout WindowLayout? Layout of the note window
 
 --- @param opts ProjectNoteOpts
+--- @return Note
 function M.setup(opts)
+  if note then
+    return note
+  end
+
   opts = opts or {}
 
   local project_key = ""
@@ -239,13 +247,9 @@ function M.setup(opts)
     vim.uv.fs_mkdir(settings.data_path, 488)
   end
 
-  local note = Note:new(settings)
+  note = Note:new(settings)
 
-  vim.api.nvim_create_user_command("ProjectNoteToggle",
-    function()
-      note:toggle()
-    end,
-    {})
+  return note
 end
 
 return M
